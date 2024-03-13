@@ -1,0 +1,1 @@
+Repository for laboratory work on the subject "Parallel and distributed computing", Maksym Tarasovets Group IA-13
