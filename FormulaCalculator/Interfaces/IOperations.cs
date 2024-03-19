@@ -10,11 +10,11 @@ public interface IOperations
 
 	double[] MultiplyVectorByScalar(double[] v, double scalar);
 
-	double[][] AddMatrices(double[][] m1, double[][] m2);
+	double[][] AddMatrices(double[][] m1, double[][] m2); // uses Operations inside
 
-	double[][] MinusMatrices(double[][] m1, double[][] m2);
+	double[][] MinusMatrices(double[][] m1, double[][] m2); // uses Operations inside
 
-	double[][] MinusVectors(double[] v1, double[] v2);
+	double[][] MinusVectors(double[] v1, double[] v2); // Operations
 
-	double MinValInVector(double[] v);
+	double MinValInVector(double[] v); // Linq => Min
 }
