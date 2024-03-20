@@ -1,3 +1,4 @@
+using BenchmarkDotNet.Attributes;
 using FormulaCalculator.Interfaces;
 using SampleDataGenerator;
 
