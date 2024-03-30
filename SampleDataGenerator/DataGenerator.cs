@@ -6,7 +6,7 @@ namespace SampleDataGenerator;
 /// </summary>
 public class DataGenerator
 {
-	private Random _random;
+	private readonly Random _random;
 
 	public DataGenerator(Random random)
 	{

@@ -12,4 +12,4 @@ var sampleData = new SampleData(
 	g.GenerateScalar(1, 100)
 );
 
-DataSerializer.Serialize(sampleData, "../../../../ConsoleApp/Data/data.json"); // Automatically adds data to the ConsoleApp
+DataSerializer.Serialize(sampleData, "../../../../ConsoleApp/Data/new-data.json"); // Automatically adds data to the ConsoleApp

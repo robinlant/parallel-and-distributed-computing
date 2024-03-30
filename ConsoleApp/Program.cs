@@ -4,7 +4,7 @@ using ConsoleApp.Benchmarks;
 using FormulaCalculator.Implementations.laboratory_1;
 using SampleDataGenerator;
 
-var data = "data-big.json";
+var data = "data.json";
 Console.WriteLine("DataSet:  " + data);
 var sampleData = DataSerializer.Deserialize<SampleData>("../../../Data/" + data);
 var calc = new FormulaCalculatorLabOne(sampleData!);

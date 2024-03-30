@@ -11,7 +11,7 @@ public class Benchmark
 
 	public Benchmark()
 	{
-		var data = "data-big.json";
+		var data = "data.json";
 		var samepleData = DataSerializer.Deserialize<SampleData>(Path.Combine("/Users/maksymtarasovets/csProjects/parallel-and-distributed-computing/ConsoleApp/Data/", data));
 
 		_calcL1 = new FormulaCalculatorLabOne(samepleData!);
