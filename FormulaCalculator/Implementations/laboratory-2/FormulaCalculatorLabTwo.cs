@@ -13,6 +13,7 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 		_data = data;
 		_maxThreadsPerMethod = maxThreadsPerMethod;
 	}
+	
 	/// <summary>
 	/// МG=МВ*MО+МM*(МO-MB)d
 	/// </summary>
@@ -79,7 +80,7 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 	    private static void ExecuteInParallel(Action<int> action, int startIndex, int endIndex, int threadsLimit)
 	    {
 		    var totalWork = endIndex - startIndex;
-		    var threads = new Thread[threadsLimit];
+		    var countdown = new CountdownEvent(threadsLimit);
 		    var maxWorkPerThread = (int)Math.Ceiling((double)totalWork / threadsLimit);
 
 		    for (var threadIndex = 0; threadIndex < threadsLimit; threadIndex++)
@@ -87,20 +88,18 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 			    var startWork = startIndex + threadIndex * maxWorkPerThread;
 			    var endWork = Math.Min(startWork + maxWorkPerThread, endIndex);
 
-			    threads[threadIndex] = new Thread(() =>
+			    var thread = new Thread(() =>
 			    {
 				    for (var workIndex = startWork; workIndex < endWork; workIndex++)
 				    {
 					    action(workIndex);
 				    }
+				    countdown.Signal();
 			    });
-			    threads[threadIndex].Start();
+			    thread.Start();
 		    }
 
-		    foreach (var thread in threads)
-		    {
-			    thread?.Join();
-		    }
+		    countdown.Wait();
 	    }
 
 	    public static void MultiplyVectorByMatrix(double[] v, double[][] m, double[] resultVector, int threadsLimit)
@@ -125,9 +124,11 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 
 	    public static void MultiplyMatrices(double[][] m1, double[][] m2, double[][] resultMatrix, int threadsLimit)
 	    {
-		    int rows = m1.Length;
+		    var rows = m1.Length;
 		    ExecuteInParallel(rowIndex =>
 		    {
+			    resultMatrix[rowIndex] = new double[m2[0].Length];
+
 			    for (int j = 0; j < m2[0].Length; j++)
 			    {
 				    double sum = 0.0;
@@ -142,20 +143,18 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 
 	    public static void SubtractMatrices(double[][] m1, double[][] m2, double[][] resultMatrix, int threadsLimit)
 	    {
-		    var rows = m1.Length;
 		    ExecuteInParallel(rowIndex =>
 		    {
 			    resultMatrix[rowIndex] = Operations.SubtractVectors(m1[rowIndex], m2[rowIndex]);
-		    }, 0, rows, threadsLimit);
+		    }, 0, m1.Length, threadsLimit);
 	    }
 
 	    public static void SumMatrices(double[][] m1, double[][] m2, double[][] resultMatrix, int threadsLimit)
 	    {
-		    var rows = m1.Length;
 		    ExecuteInParallel(rowIndex =>
 		    {
 			    resultMatrix[rowIndex] = Operations.SumVectors(m1[rowIndex], m2[rowIndex]);
-		    }, 0, rows, threadsLimit);
+		    }, 0, m1.Length, threadsLimit);
 	    }
 	}
 }
