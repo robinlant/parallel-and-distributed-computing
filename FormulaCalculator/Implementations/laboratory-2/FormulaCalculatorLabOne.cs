@@ -6,10 +6,12 @@ namespace FormulaCalculator.Implementations.laboratory_2;
 public class FormulaCalculatorLabTwo : IFormulaCalculator
 {
 	private readonly SampleData _data;
+	private readonly int _maxThreadsPerMethod;
 
-	public FormulaCalculatorLabTwo(SampleData data)
+	public FormulaCalculatorLabTwo(SampleData data, int maxThreadsPerMethod)
 	{
 		_data = data;
+		_maxThreadsPerMethod = maxThreadsPerMethod;
 	}
 	/// <summary>
 	/// МG=МВ*MО+МM*(МO-MB)d
@@ -20,7 +22,7 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 		var p3 = new double[_data.MO.Length][];
 		var p3Thread = new Thread(() =>
 		{
-			AsyncOperations.SubtractMatrices(_data.MO,_data.MB,p3);
+			AsyncOperations.SubtractMatrices(_data.MO,_data.MB,p3, _maxThreadsPerMethod);
 		});
 		p3Thread.Start();
 
@@ -28,19 +30,19 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 		var p1 = new double[_data.MB.Length][];
 		var p1Thread = new Thread(() =>
 		{
-			AsyncOperations.MultiplyMatrices(_data.MB,_data.MO,p1);
+			AsyncOperations.MultiplyMatrices(_data.MB,_data.MO,p1, _maxThreadsPerMethod);
 		});
 		p1Thread.Start();
 
 		p3Thread.Join();
 
 		var p2 = new double[_data.MM.Length][];
-		AsyncOperations.MultiplyMatrices(_data.MM,Operations.MultiplyMatrixByScalar(p3,_data.d),p2);
+		AsyncOperations.MultiplyMatrices(_data.MM,Operations.MultiplyMatrixByScalar(p3,_data.d),p2, _maxThreadsPerMethod);
 
 		p1Thread.Join();
 
 		var res = new double[p1.Length][];
-		AsyncOperations.SumMatrices(p1,p2,res);
+		AsyncOperations.SumMatrices(p1,p2,res, _maxThreadsPerMethod);
 		return res;
 	}
 	/// <summary>
@@ -53,9 +55,7 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 		var p2Thread = new Thread(() =>
 		{
 			AsyncOperations.MultiplyVectorByMatrix(
-				Operations.MultiplyVectorByScalar(_data.C, _data.d),
-				_data.MO,
-				p2);
+				Operations.MultiplyVectorByScalar(_data.C, _data.d), _data.MO, p2, _maxThreadsPerMethod);
 		});
 		p2Thread.Start();
 		//min(В)*D
@@ -67,107 +67,95 @@ public class FormulaCalculatorLabTwo : IFormulaCalculator
 	}
 
 	private static class AsyncOperations
-	{
-		public static void MultiplyVectorByMatrix(double[] v, double[][] m, double[] resultVector)
-		{
-			var threads = new Thread[m[0].Length];
+    {
+	    /// <summary>
+	    /// Executes an action in parallel within specified range of iterations.
+	    /// Custom parallel for loop
+	    /// </summary>
+	    /// <param name="action">Action/<int/> that executes on every iteration, int represents current index of iteration</param>
+	    /// <param name="startIndex">Starting index</param>
+	    /// <param name="endIndex">End index, Action with this value IS NOT EXECUTED, UPPER BOUND</param>
+	    /// <param name="threadsLimit">Max amount of threads to be used</param>
+	    private static void ExecuteInParallel(Action<int> action, int startIndex, int endIndex, int threadsLimit)
+	    {
+		    var totalWork = endIndex - startIndex;
+		    var threads = new Thread[threadsLimit];
+		    var maxWorkPerThread = (int)Math.Ceiling((double)totalWork / threadsLimit);
 
-			for (var i = 0; i < m[0].Length; i++)
-			{
-				var localI = i;
+		    for (var threadIndex = 0; threadIndex < threadsLimit; threadIndex++)
+		    {
+			    var startWork = startIndex + threadIndex * maxWorkPerThread;
+			    var endWork = Math.Min(startWork + maxWorkPerThread, endIndex);
 
-				threads[i] = new Thread(() =>
-				{
-					resultVector[localI] = 0;
-					for (int k = 0; k < v.Length; k++)
-					{
-						resultVector[localI] += v[k] * m[k][localI];
-					}
-				});
+			    threads[threadIndex] = new Thread(() =>
+			    {
+				    for (var workIndex = startWork; workIndex < endWork; workIndex++)
+				    {
+					    action(workIndex);
+				    }
+			    });
+			    threads[threadIndex].Start();
+		    }
 
-				threads[i].Start();
-			}
+		    foreach (var thread in threads)
+		    {
+			    thread?.Join();
+		    }
+	    }
 
-			foreach (var thread in threads)
-			{
-				thread.Join();
-			}
-		}
+	    public static void MultiplyVectorByMatrix(double[] v, double[][] m, double[] resultVector, int threadsLimit)
+	    {
+		    var columns = m[0].Length;
+		    ExecuteInParallel(colIndex =>
+		    {
+			    double sum = 0.0;
+			    double c = 0.0; // Kahan Summation compensation
 
+			    for (int k = 0; k < v.Length; k++)
+			    {
+				    double y = v[k] * m[k][colIndex] - c;
+				    double t = sum + y;
+				    c = t - sum - y;
+				    sum = t;
+			    }
 
-		public static void MultiplyMatrices(double[][] m1, double[][] m2, double[][] resultMatrix)
-		{
-			var threads = new Thread[m1.Length];
+			    resultVector[colIndex] = sum;
+		    }, 0, columns, threadsLimit);
+	    }
 
-			for (var i = 0; i < m1.Length; i++)
-			{
-				resultMatrix[i] = new double[m2[0].Length];
+	    public static void MultiplyMatrices(double[][] m1, double[][] m2, double[][] resultMatrix, int threadsLimit)
+	    {
+		    int rows = m1.Length;
+		    ExecuteInParallel(rowIndex =>
+		    {
+			    for (int j = 0; j < m2[0].Length; j++)
+			    {
+				    double sum = 0.0;
+				    for (int k = 0; k < m1[rowIndex].Length; k++)
+				    {
+					    sum += m1[rowIndex][k] * m2[k][j];
+				    }
+				    resultMatrix[rowIndex][j] = sum;
+			    }
+		    }, 0, rows, threadsLimit);
+	    }
 
-				var localI = i;
-				threads[i] = new Thread(() =>
-				{
-					for (var j = 0; j < m2[0].Length; j++)
-					{
-						resultMatrix[localI][j] = 0;
+	    public static void SubtractMatrices(double[][] m1, double[][] m2, double[][] resultMatrix, int threadsLimit)
+	    {
+		    var rows = m1.Length;
+		    ExecuteInParallel(rowIndex =>
+		    {
+			    resultMatrix[rowIndex] = Operations.SubtractVectors(m1[rowIndex], m2[rowIndex]);
+		    }, 0, rows, threadsLimit);
+	    }
 
-						for (var k = 0; k < m1[localI].Length; k++)
-						{
-							resultMatrix[localI][j] += m1[localI][k] * m2[k][j];
-						}
-					}
-				});
-				threads[i].Start();
-			}
-
-			foreach (var thread in threads)
-			{
-				thread.Join();
-			}
-		}
-
-		public static void SubtractMatrices(double[][] m1, double[][] m2, double[][] resultMatrix)
-		{
-			var threads = new Thread[m1.Length];
-
-			for (var i = 0; i < m1.Length; i++)
-			{
-				var localI = i; // i is gonna change each loop so we need a stable i
-
-				threads[i] = new Thread(() =>
-				{
-					resultMatrix[localI] = Operations.SubtractVectors(m1[localI], m2[localI]);
-				});
-
-				threads[i].Start();
-			}
-
-			foreach (var thread in threads)
-			{
-				thread.Join();
-			}
-
-		}
-
-		public static void SumMatrices(double[][] m1, double[][] m2, double[][] resultMatrix)
-		{
-			var threads = new Thread[m1.Length];
-
-			for (var i = 0; i < m1.Length; i++)
-			{
-				var localI = i;
-
-				threads[i] = new Thread(() =>
-				{
-					resultMatrix[localI] = Operations.SumVectors(m1[localI], m2[localI]);
-				});
-
-				threads[i].Start();
-			}
-
-			foreach (var thread in threads)
-			{
-				thread.Join();
-			}
-		}
+	    public static void SumMatrices(double[][] m1, double[][] m2, double[][] resultMatrix, int threadsLimit)
+	    {
+		    var rows = m1.Length;
+		    ExecuteInParallel(rowIndex =>
+		    {
+			    resultMatrix[rowIndex] = Operations.SumVectors(m1[rowIndex], m2[rowIndex]);
+		    }, 0, rows, threadsLimit);
+	    }
 	}
 }
