@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using FormulaCalculator.Implementations.laboratory_1;
 using FormulaCalculator.Implementations.laboratory_2;
+using FormulaCalculator.Implementations.laboratory_3;
 using FormulaCalculator.Interfaces;
 using SampleDataGenerator;
 
@@ -8,28 +9,17 @@ namespace ConsoleApp.Benchmarks;
 
 public class Benchmark
 {
-	private FormulaCalculatorLabOne _calcL1;
 	private FormulaCalculatorLabTwo _calcL2;
+	private FormulaCalculatorLabThree _calcL3;
 
 	public Benchmark()
 	{
 		var data = "data.json";
 		var samepleData = DataSerializer.Deserialize<SampleData>(Path.Combine("/Users/maksymtarasovets/csProjects/parallel-and-distributed-computing/ConsoleApp/Data/", data));
 
-		_calcL1 = new FormulaCalculatorLabOne(samepleData!);
+
 		_calcL2 = new FormulaCalculatorLabTwo(samepleData!, 5);
-	}
-
-	[Benchmark]
-	public void CalcFormulaALab1()
-	{
-		_calcL1.CalcFormulaA();
-	}
-
-	[Benchmark]
-	public void CalcFormulaBLab1()
-	{
-		_calcL1.CalcFormulaB();
+		_calcL3 = new FormulaCalculatorLabThree(samepleData!,5);
 	}
 
 	[Benchmark]
@@ -42,5 +32,17 @@ public class Benchmark
 	public void CalcFormulaBLab2()
 	{
 		_calcL2.CalcFormulaB();
+	}
+
+	[Benchmark]
+	public void CalcFormulaALab3()
+	{
+		_calcL3.CalcFormulaA();
+	}
+
+	[Benchmark]
+	public void CalcFormulaBLab3()
+	{
+		_calcL3.CalcFormulaB();
 	}
 }
