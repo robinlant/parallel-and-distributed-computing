@@ -7,7 +7,7 @@ public static class Printer
 		PrintResults(res[0], limitChars, additionalText);
 	}
 
-	public static void PrintResults(double[] res, int limitChars, string additionalText)
+	public static void PrintResults(double[] res, int limitChars = 5, string additionalText = "")
 	{
 		Console.WriteLine(additionalText);
 		var output = "";

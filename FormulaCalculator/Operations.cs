@@ -68,4 +68,21 @@ public static class Operations
 	{
 		return v.Min();
 	}
+
+	// Kahan Summation Algorithm
+	public static double AccurateSum(double[] numbers)
+	{
+		double sum = 0.0;
+		double c = 0.0;
+
+		for (int i = 0; i < numbers.Length; i++)
+		{
+			double y = numbers[i] - c;
+			double t = sum + y;
+			c = t - sum - y;
+			sum = t;
+		}
+
+		return sum;
+	}
 }
